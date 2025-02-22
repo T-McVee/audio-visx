@@ -1,4 +1,6 @@
 import { useRef, useState } from "react";
+import { FrequencyBands } from "../App";
+
 
 
 export default function useAudio() {
@@ -8,6 +10,7 @@ export default function useAudio() {
   const [frequencyData, setFrequencyData] = useState<Uint8Array | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
+  const [isRunning, setIsRunning] = useState(false);
 
   async function createNewAudioContext() {
     const contextPromise = new Promise<AudioContext>((resolve) => {
@@ -23,7 +26,7 @@ export default function useAudio() {
     console.log('Creating analyzer');
     const analyzerNodePromise = new Promise<AnalyserNode>((resolve) => {
       const analyzerNode = context.createAnalyser();
-      analyzerNode.fftSize = 256;
+      analyzerNode.fftSize = FrequencyBands * 2;
       resolve(analyzerNode);
     });
     return analyzerNodePromise;
@@ -70,6 +73,8 @@ export default function useAudio() {
   }
 
   async function startFrequencyData() {  
+    if (isRunning) return;
+    
     const audioContext = await audioContextSetup();
     const analyzer = audioContext?.analyzer ?? audioAnalyzer;
 
@@ -78,22 +83,28 @@ export default function useAudio() {
     const updateData = () => {
       const data = getFrequencyData(analyzer!);
       setFrequencyData(data);
-      console.log('DATA:', data);
+      // console.log('DATA:', data);
 
       animationFrameRef.current = requestAnimationFrame(updateData);
     };
 
     // Start the animation frame
     animationFrameRef.current = requestAnimationFrame(updateData);
+
+    setIsRunning(true);
   }
 
 
   function stopFrequencyData() {
+    if (!isRunning) return;
+
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
       setFrequencyData(null);
     }
+
+    setIsRunning(false);
   }
 
   return {
