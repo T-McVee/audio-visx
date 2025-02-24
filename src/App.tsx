@@ -5,33 +5,36 @@ import { Group } from '@visx/group';
 import { GradientPurpleRed, LinearGradient } from '@visx/gradient';
 import { scaleBand, scaleLinear } from '@visx/scale';
 import { GridRows, GridColumns } from '@visx/grid';
-
-const margin = { top: 40, right: 10, bottom: 40, left: 10 };
-const width = typeof window !== 'undefined' ? window.innerWidth : 1600;
-const height = 600;
-export const FrequencyBands = 256;
-export const background = '#3b6978';
-export const background2 = '#204051';
-export const accentColor = '#edffea';
-export const accentColorDark = '#75daad';
+import {
+  ACCENT_COLOR,
+  ACCENT_COLOR_DARK,
+  BACKGROUND,
+  BACKGROUND2,
+  FREQUENCY_BANDS,
+  HEIGHT,
+  MARGIN,
+  WIDTH,
+} from './config';
+import Controls from './components/Controls';
 
 function App() {
   const { startFrequencyData, stopFrequencyData, analyzer, frequencyData } =
     useAudio();
 
-  const [frequencyBands, setFrequencyBands] = useState(1);
+  const [downsamplingRate, setDownsamplingRate] = useState(1);
   const [barPadding, setBarPadding] = useState(0.4);
+  const [isBgTransparent, setIsBgTransparent] = useState(false);
+  const [bgBorderRadius, setBgBorderRadius] = useState(20);
 
   const xScale = scaleBand({
-    domain: [...Array(FrequencyBands)].map((_, index) => index) ?? [],
-    // range: [margin.left, width - margin.right],
-    range: [barPadding, width - barPadding],
+    domain: [...Array(FREQUENCY_BANDS)].map((_, index) => index) ?? [],
+    range: [barPadding, WIDTH - barPadding],
     padding: barPadding,
   });
 
   const yScale = scaleLinear({
     domain: [0, 200],
-    range: [height - margin.bottom, margin.top],
+    range: [HEIGHT - MARGIN.bottom, MARGIN.top],
   });
 
   return (
@@ -46,10 +49,16 @@ function App() {
           width: '100vw',
           padding: '0 1rem',
           boxSizing: 'border-box',
+          background:
+            'linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,20,147,0.15) 30%, rgba(64,224,208,0.25) 60%, rgba(127,255,212,0.15) 100%)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          borderRadius: '16px',
+          boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)',
+          border: '1px solid rgba(255, 255, 255, 0.3)',
         }}
       >
-        <h1>VisX Audio</h1>
-
+        <h1>VisX : Audio</h1>
         <p>{analyzer ? 'Connected' : 'Disconnected'}</p>
         <div
           style={{
@@ -61,39 +70,28 @@ function App() {
             maxWidth: '100%',
           }}
         >
-          <div style={{ display: 'flex', flexDirection: 'row', gap: '1rem' }}>
-            <label htmlFor="frequencyBands">Frequency Bands</label>
-            <input
-              type="number"
-              id="frequencyBands"
-              value={frequencyBands}
-              onChange={(e) => setFrequencyBands(Number(e.target.value))}
-              min={1}
-              max={127}
-            />
-            <label htmlFor="barPadding">Bar Padding</label>
-            <input
-              type="range"
-              id="barPadding"
-              value={barPadding}
-              onChange={(e) => setBarPadding(Number(e.target.value))}
-              step={0.01}
-              min={-4}
-              max={1}
-            />
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'row', gap: '10px' }}>
-            <button onClick={startFrequencyData}>Start Frequency Data</button>
-            <button onClick={stopFrequencyData}>Stop Frequency Data</button>
-          </div>
+          <Controls
+            downsamplingRate={downsamplingRate}
+            setDownsamplingRate={setDownsamplingRate}
+            barPadding={barPadding}
+            setBarPadding={setBarPadding}
+            bgBorderRadius={bgBorderRadius}
+            setBgBorderRadius={setBgBorderRadius}
+            startFrequencyData={startFrequencyData}
+            stopFrequencyData={stopFrequencyData}
+            setIsBgTransparent={setIsBgTransparent}
+            isBgTransparent={isBgTransparent}
+          />
           <div
             style={{
               display: 'flex',
-              width: width,
+              width: WIDTH,
               maxWidth: '100%',
               flexDirection: 'row',
               gap: '0px',
               overflow: 'hidden',
+              boxShadow: '-35px 35px 35px -35px rgba(0, 0, 0, 0.09)',
+              borderRadius: `${bgBorderRadius}px`,
             }}
           >
             <svg width={0} height={0}>
@@ -107,41 +105,45 @@ function App() {
             </svg>
             <svg
               width={'100%'}
-              height={height}
-              style={{ borderRadius: '2rem' }}
+              height={HEIGHT}
+              style={{
+                borderRadius: `${bgBorderRadius}px`,
+              }}
             >
               <GradientPurpleRed id="teal" />
-              <LinearGradient
-                id="background-gradient"
-                from={background}
-                to={background2}
-              />
+              {!isBgTransparent ? (
+                <LinearGradient
+                  id="background-gradient"
+                  from={BACKGROUND}
+                  to={BACKGROUND2}
+                />
+              ) : null}
               <LinearGradient
                 id="area-gradient"
-                from={accentColorDark}
-                to={accentColor}
+                from={ACCENT_COLOR_DARK}
+                to={ACCENT_COLOR}
                 toOpacity={0.6}
                 fromOpacity={0.1}
               />
               <rect
                 width={'100%'}
-                height={height}
+                height={HEIGHT}
                 fill="url(#background-gradient)"
                 opacity={1}
               />
               <Group top={0}>
                 <GridRows
                   scale={yScale}
-                  width={width}
-                  height={height}
+                  width={WIDTH}
+                  height={HEIGHT}
                   stroke="#e0e0e03f"
                   strokeDasharray="2,2"
                   strokeOpacity={0.5}
                 />
                 <GridColumns
                   scale={xScale}
-                  width={width}
-                  height={height}
+                  width={WIDTH}
+                  height={HEIGHT}
                   stroke="#e0e0e03f"
                   strokeDasharray="2,2"
                   strokeOpacity={0.5}
@@ -149,11 +151,11 @@ function App() {
                 {frequencyData &&
                   [...frequencyData].map((data, index) => {
                     const barWidth = xScale.bandwidth();
-                    const barHeight = height - yScale(data) - margin.top;
+                    const barHeight = HEIGHT - yScale(data) - MARGIN.top;
                     const barX = xScale(index);
-                    const barY = yScale(data) + margin.top;
+                    const barY = yScale(data) + MARGIN.top;
 
-                    return index % frequencyBands === 0 ? (
+                    return index % downsamplingRate === 0 ? (
                       <Bar
                         x={barX}
                         y={barY}

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { FrequencyBands } from '../App';
+import { FREQUENCY_BANDS } from '../config';
 
 export default function useAudio() {
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
@@ -25,7 +25,7 @@ export default function useAudio() {
     console.log('Creating analyzer');
     const analyzerNodePromise = new Promise<AnalyserNode>((resolve) => {
       const analyzerNode = context.createAnalyser();
-      analyzerNode.fftSize = FrequencyBands * 2;
+      analyzerNode.fftSize = FREQUENCY_BANDS * 2;
       resolve(analyzerNode);
     });
     return analyzerNodePromise;
