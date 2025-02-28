@@ -1,7 +1,8 @@
 import React from 'react';
-import { FREQUENCY_BANDS } from '../config';
+import { FFT_SIZE } from '../config';
 
 interface ControlsProps {
+  isRunning: boolean;
   downsamplingRate: number;
   setDownsamplingRate: (value: number) => void;
   barPadding: number;
@@ -12,10 +13,13 @@ interface ControlsProps {
   stopFrequencyData: () => void;
   setIsBgTransparent: (value: boolean) => void;
   isBgTransparent: boolean;
+  setSmoothingTimeConstant: (value: number) => void;
+  smoothingTimeConstant: number;
 }
 
 export default function Controls(props: ControlsProps) {
   const {
+    isRunning,
     downsamplingRate,
     setDownsamplingRate,
     barPadding,
@@ -26,7 +30,10 @@ export default function Controls(props: ControlsProps) {
     stopFrequencyData,
     setIsBgTransparent,
     isBgTransparent,
+    setSmoothingTimeConstant,
+    smoothingTimeConstant,
   } = props;
+
   return (
     <div
       style={{
@@ -38,6 +45,17 @@ export default function Controls(props: ControlsProps) {
         maxWidth: '100%',
       }}
     >
+      <div style={{ display: 'flex', flexDirection: 'row', gap: '10px' }}>
+        <button onClick={startFrequencyData} disabled={isRunning}>
+          Start Frequency Data
+        </button>
+        <button onClick={stopFrequencyData} disabled={!isRunning}>
+          Stop Frequency Data
+        </button>
+        <button onClick={() => setIsBgTransparent(!isBgTransparent)}>
+          Toggle Background
+        </button>
+      </div>
       <div
         style={{
           display: 'flex',
@@ -55,7 +73,7 @@ export default function Controls(props: ControlsProps) {
             value={downsamplingRate}
             onChange={(e) => setDownsamplingRate(Number(e.target.value))}
             min={1}
-            max={FREQUENCY_BANDS}
+            max={FFT_SIZE}
           />
         </div>
         <div>
@@ -82,13 +100,18 @@ export default function Controls(props: ControlsProps) {
             max={300}
           />
         </div>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'row', gap: '10px' }}>
-        <button onClick={startFrequencyData}>Start Frequency Data</button>
-        <button onClick={stopFrequencyData}>Stop Frequency Data</button>
-        <button onClick={() => setIsBgTransparent(!isBgTransparent)}>
-          Toggle Background
-        </button>
+        <div>
+          <label htmlFor="smoothingTimeConstant">Time smoothing</label>
+          <input
+            type="range"
+            id="smoothingTimeConstant"
+            value={smoothingTimeConstant}
+            onChange={(e) => setSmoothingTimeConstant(Number(e.target.value))}
+            step={0.001}
+            min={0.2}
+            max={1}
+          />
+        </div>
       </div>
     </div>
   );

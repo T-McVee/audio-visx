@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { FREQUENCY_BANDS } from '../config';
+import { FFT_SIZE, SAMPLE_RATE, SMOOTHING_TIME_CONSTANT } from '../config';
 
 export default function useAudio() {
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
@@ -13,7 +13,7 @@ export default function useAudio() {
 
   async function createNewAudioContext() {
     const contextPromise = new Promise<AudioContext>((resolve) => {
-      const context = new AudioContext();
+      const context = new AudioContext({ sampleRate: SAMPLE_RATE });
       context.onstatechange = () => {
         if (context.state === 'running') resolve(context);
       };
@@ -25,7 +25,8 @@ export default function useAudio() {
     console.log('Creating analyzer');
     const analyzerNodePromise = new Promise<AnalyserNode>((resolve) => {
       const analyzerNode = context.createAnalyser();
-      analyzerNode.fftSize = FREQUENCY_BANDS * 2;
+      analyzerNode.fftSize = FFT_SIZE * 2;
+      analyzerNode.smoothingTimeConstant = SMOOTHING_TIME_CONSTANT;
       resolve(analyzerNode);
     });
     return analyzerNodePromise;
@@ -149,7 +150,7 @@ export default function useAudio() {
     audioContextSetup,
     startFrequencyData,
     stopFrequencyData,
-
+    isRunning,
     analyzer: audioAnalyzer,
     source: audioSource,
     context: audioContext,

@@ -11,9 +11,10 @@ import {
   ACCENT_COLOR_DARK,
   BACKGROUND,
   BACKGROUND2,
-  FREQUENCY_BANDS,
+  FFT_SIZE,
   HEIGHT,
   MARGIN,
+  SMOOTHING_TIME_CONSTANT,
   WIDTH,
 } from './config';
 import Controls from './components/Controls';
@@ -41,8 +42,13 @@ type TooltipData = {
 let tooltipTimeout: number;
 
 function App() {
-  const { startFrequencyData, stopFrequencyData, analyzer, frequencyData } =
-    useAudio();
+  const {
+    startFrequencyData,
+    stopFrequencyData,
+    analyzer,
+    frequencyData,
+    isRunning,
+  } = useAudio();
 
   const {
     tooltipOpen,
@@ -59,7 +65,7 @@ function App() {
   const [bgBorderRadius, setBgBorderRadius] = useState(20);
 
   const xScale = scaleBand({
-    domain: [...Array(FREQUENCY_BANDS)].map((_, index) => index) ?? [],
+    domain: [...Array(FFT_SIZE / 2 - 1)].map((_, index) => index) ?? [],
     range: [barPadding, WIDTH - barPadding],
     padding: barPadding,
   });
@@ -75,6 +81,12 @@ function App() {
     // Tooltip or TooltipWithBounds if you don't need to render inside a Portal
     scroll: true,
   });
+
+  function setSmoothingTimeConstant(value: number) {
+    if (analyzer) {
+      analyzer.smoothingTimeConstant = value;
+    }
+  }
 
   return (
     <>
@@ -110,6 +122,7 @@ function App() {
           }}
         >
           <Controls
+            isRunning={isRunning}
             downsamplingRate={downsamplingRate}
             setDownsamplingRate={setDownsamplingRate}
             barPadding={barPadding}
@@ -120,7 +133,12 @@ function App() {
             stopFrequencyData={stopFrequencyData}
             setIsBgTransparent={setIsBgTransparent}
             isBgTransparent={isBgTransparent}
+            smoothingTimeConstant={
+              analyzer?.smoothingTimeConstant ?? SMOOTHING_TIME_CONSTANT
+            }
+            setSmoothingTimeConstant={setSmoothingTimeConstant}
           />
+
           <div
             style={{
               display: 'flex',

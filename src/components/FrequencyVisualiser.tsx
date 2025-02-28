@@ -8,7 +8,7 @@ import {
   ACCENT_COLOR_DARK,
   BACKGROUND,
   BACKGROUND2,
-  FREQUENCY_BANDS,
+  FFT_SIZE,
   HEIGHT,
   MARGIN,
   WIDTH,
@@ -34,7 +34,7 @@ export function FrequencyVisualiser(props: FrequencyVisualiserProps) {
   } = props;
 
   const xScale = scaleBand({
-    domain: [...Array(FREQUENCY_BANDS)].map((_, index) => index) ?? [],
+    domain: [...Array(FFT_SIZE)].map((_, index) => index) ?? [],
     range: [barPadding, WIDTH - barPadding],
     padding: barPadding,
   });
