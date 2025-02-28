@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import useAudio from './hooks/useAudio';
-import { Bar } from '@visx/shape';
+import { Bar, AreaClosed, Line } from '@visx/shape';
 import { Group } from '@visx/group';
 import { GradientPurpleRed, LinearGradient } from '@visx/gradient';
 import { scaleBand, scaleLinear } from '@visx/scale';
 import { GridRows, GridColumns } from '@visx/grid';
+import { AxisLeft } from '@visx/axis';
 import {
   ACCENT_COLOR,
   ACCENT_COLOR_DARK,
@@ -16,10 +17,41 @@ import {
   WIDTH,
 } from './config';
 import Controls from './components/Controls';
+import { useTooltip, useTooltipInPortal, defaultStyles } from '@visx/tooltip';
+import { SeriesPoint } from '@visx/shape/lib/types';
+import { localPoint } from '@visx/event';
+
+type TooltipData = {
+  // bar: SeriesPoint<number>;
+  bar: {
+    x: number;
+    y: number;
+    height: number;
+    width: number;
+  };
+  key: number;
+  index: number;
+  height: number;
+  width: number;
+  x: number;
+  y: number;
+  color: string;
+};
+
+let tooltipTimeout: number;
 
 function App() {
   const { startFrequencyData, stopFrequencyData, analyzer, frequencyData } =
     useAudio();
+
+  const {
+    tooltipOpen,
+    tooltipLeft,
+    tooltipTop,
+    tooltipData,
+    hideTooltip,
+    showTooltip,
+  } = useTooltip<TooltipData>();
 
   const [downsamplingRate, setDownsamplingRate] = useState(1);
   const [barPadding, setBarPadding] = useState(0.4);
@@ -35,6 +67,13 @@ function App() {
   const yScale = scaleLinear({
     domain: [0, 200],
     range: [HEIGHT - MARGIN.bottom, MARGIN.top],
+  });
+
+  const { containerRef, TooltipInPortal } = useTooltipInPortal({
+    // TooltipInPortal is rendered in a separate child of <body /> and positioned
+    // with page coordinates which should be updated on scroll. consider using
+    // Tooltip or TooltipWithBounds if you don't need to render inside a Portal
+    scroll: true,
   });
 
   return (
@@ -103,12 +142,14 @@ function App() {
                 </linearGradient>
               </defs>
             </svg>
+
             <svg
               width={'100%'}
               height={HEIGHT}
               style={{
                 borderRadius: `${bgBorderRadius}px`,
               }}
+              ref={containerRef}
             >
               <GradientPurpleRed id="teal" />
               {!isBgTransparent ? (
@@ -131,7 +172,22 @@ function App() {
                 fill="url(#background-gradient)"
                 opacity={1}
               />
-              <Group top={0}>
+
+              <Group top={0} left={0}>
+                {/* <AxisLeft
+                  scale={yScale}
+                  stroke="#e0e0e03f"
+                  tickStroke="#e0e0e03f"
+                  strokeWidth={2}
+                  label="Amplitude"
+                  labelProps={{
+                    fill: '#e0e0e03f',
+                    fontSize: 12,
+                    color: '#e0e0e03f',
+                  }}
+                  numTicks={5}
+                  left={30}
+                /> */}
                 <GridRows
                   scale={yScale}
                   width={WIDTH}
@@ -163,6 +219,29 @@ function App() {
                         width={barWidth}
                         fill="url(#area-gradient)"
                         key={index}
+                        onMouseLeave={() => {
+                          tooltipTimeout = window.setTimeout(() => {
+                            hideTooltip();
+                          }, 1000);
+                        }}
+                        onMouseMove={(event) => {
+                          if (tooltipTimeout) clearTimeout(tooltipTimeout);
+                          // TooltipInPortal expects coordinates to be relative to containerRef
+                          // localPoint returns coordinates relative to the nearest SVG, which
+                          // is what containerRef is set to in this example.
+                          const eventSvgCoords = localPoint(event);
+                          const left = barX! + barWidth / 2;
+                          showTooltip({
+                            tooltipData: {
+                              x: barX,
+                              y: barY,
+                              height: barHeight,
+                              width: barWidth,
+                            } as any,
+                            tooltipTop: eventSvgCoords?.y,
+                            tooltipLeft: left,
+                          });
+                        }}
                       />
                     ) : null;
                   })}
@@ -170,9 +249,29 @@ function App() {
             </svg>
           </div>
         </div>
+        {tooltipOpen && tooltipData && (
+          <TooltipInPortal
+            top={tooltipTop}
+            left={tooltipLeft}
+            style={tooltipStyles}
+          >
+            <div style={{ color: 'red' }}>
+              <strong>{tooltipData.key}</strong>
+            </div>
+            <div>Freq: {Math.round(tooltipData.x).toLocaleString()} Hz</div>
+            <div>Amplitude: {tooltipData.y.toFixed(2)} dB</div>
+          </TooltipInPortal>
+        )}
       </div>
     </>
   );
 }
 
 export default App;
+
+const tooltipStyles = {
+  ...defaultStyles,
+  minWidth: 60,
+  backgroundColor: 'rgba(0,0,0,0.9)',
+  color: 'white',
+};
