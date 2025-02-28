@@ -36,12 +36,50 @@ export default function useAudio() {
     analyzer?: AnalyserNode
   ) {
     try {
+      console.log('Checking microphone permissions...');
+      // First check if we have permissions
+      const permissionStatus = await navigator.permissions.query({
+        name: 'microphone' as PermissionName,
+      });
+      console.log('Permission status:', permissionStatus.state);
+
+      console.log('Connecting to microphone');
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log('Stream details:', {
+        active: stream.active,
+        tracks: stream.getAudioTracks().map((track) => ({
+          enabled: track.enabled,
+          muted: track.muted,
+          readyState: track.readyState,
+        })),
+      });
+
+      if (!stream.active || stream.getAudioTracks().length === 0) {
+        throw new Error('Stream is not active or has no audio tracks');
+      }
       const source = context.createMediaStreamSource(stream);
       if (analyzer) source.connect(analyzer);
       return source;
     } catch (err) {
       console.error('Error accessing microphone:', err);
+
+      if (err instanceof DOMException) {
+        switch (err.name) {
+          case 'NotAllowedError':
+            throw new Error(
+              'Microphone access was denied. Please check your system settings:\n' +
+                '- On macOS: System Preferences > Security & Privacy > Microphone\n' +
+                '- On Windows: Settings > Privacy > Microphone\n' +
+                '- On Linux: Check your system sound settings'
+            );
+          case 'NotFoundError':
+            throw new Error(
+              'No microphone was found. Please check if a microphone is connected.'
+            );
+          default:
+            throw err;
+        }
+      }
       throw err;
     }
   }
